@@ -30,6 +30,4 @@ jobs:
         distribution: 'temurin'
         
     - name: Build with Gradle
-      uses: ./gradlew clean build -x test
-      with:
-        arguments: build
+      run: ./gradlew clean build -x test
