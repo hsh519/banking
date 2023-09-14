@@ -28,6 +28,40 @@ jobs:
       with:
         java-version: '11'
         distribution: 'temurin'
-        
+
+    - name: make application.yml
+      if: contains(github.ref, 'main')
+
+      run: |
+        cd ./src/main/resources
+        touch ./application.yml
+        echo ${{ secrets.APP_PROPERTIES }} > ./application.yml
+
     - name: Build with Gradle
       run: ./gradlew clean build -x test
+
+    - name: Docker build and push
+      if: contains(github.ref, 'main')
+
+      run: |
+        docker login -u ${{ secrets.DOCKER_USERNAME }} -p ${{ secrets.DOCKER_PASSWORD }}
+        docker build -t ${{ secrets.DOCKER_REPO}}/banking
+        docker push ${{ secrets.DOCKER_REPO}}/banking
+
+    - name: Deploy
+      uses: appleboy/ssh-action@master
+      if: contains(github.ref, 'main')
+      with:
+        host: ${{ secrets.AWS_HOST }}
+        username: ${{ secrets.AWS_USERNAME }}
+        key: ${{ secrets.PRIVATE_KEY }}
+        port: ${{ secrets.AWS_PORT }}
+        script: |
+          docker login -u ${{ secrets.DOCKER_USERNAME }} -p ${{ secrets.DOCKER_PASSWORD }}
+          sudo docker rm -f $(docker ps -qa)
+          sudo docker pull ${{ secrets.DOCKER_REPO}}/banking
+          docker-compose up -d
+          docker image prune -f
+          
+        
+
