@@ -35,7 +35,7 @@ jobs:
       run: |
         cd ./src/main/resources
         touch ./application.yml
-        echo ${{ secrets.APP_PROPERTIES }} > ./application.yml
+        echo "${{ secrets.APP_PROPERTIES }}" > ./application.yml
 
     - name: Build with Gradle
       run: ./gradlew clean build -x test
