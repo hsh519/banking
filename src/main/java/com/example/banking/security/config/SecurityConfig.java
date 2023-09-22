@@ -1,6 +1,8 @@
 package com.example.banking.security.config;
 
 import com.example.banking.security.filter.JwtAuthenticationFilter;
+import com.example.banking.security.jwt.TokenProvider;
+import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -11,7 +13,10 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 
 @Configuration
 @EnableWebSecurity
+@RequiredArgsConstructor
 public class SecurityConfig {
+
+    private final TokenProvider tokenProvider;
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
@@ -28,7 +33,7 @@ public class SecurityConfig {
                                 .antMatchers("/user/login").permitAll()
                                 .anyRequest().authenticated()
                 )
-                .addFilterBefore(new JwtAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class)
+                .addFilterBefore(new JwtAuthenticationFilter(tokenProvider), UsernamePasswordAuthenticationFilter.class)
                 .build();
     }
 

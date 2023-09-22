@@ -1,14 +1,19 @@
 package com.example.banking.security.jwt;
 
 
+import com.example.banking.entity.Member;
+import com.example.banking.security.auth.PrincipalDetails;
 import com.example.banking.security.redis.RefreshToken;
 import com.example.banking.repository.MemberRepository;
 import com.example.banking.security.redis.RedisRepository;
+import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.stereotype.Component;
@@ -58,9 +63,34 @@ public class TokenProvider {
         redisRepository.save(refreshTokenObj);
 
         return TokenInfo.builder()
-                .grantType("Bearer")
+                .grantType("Bearer ")
                 .accessToken(accessToken)
                 .refreshToken(refreshToken)
                 .build();
+    }
+
+    public boolean validateToken(String accessToken) {
+        try {
+            Jwts.parserBuilder().setSigningKey(key).build().parseClaimsJws(accessToken);
+        } catch (Exception e) {
+            return false;
+        }
+        return true;
+    }
+
+    public Authentication getAuthentication(String accessToken) {
+        Claims claims = parseClaims(accessToken);
+
+        if (claims.get("auth") == null) {
+            return null;
+        }
+
+        Member findMember = memberRepository.findByEmail(claims.getSubject()).get();
+        PrincipalDetails principal = new PrincipalDetails(findMember);
+        return new UsernamePasswordAuthenticationToken(principal, null, principal.getAuthorities());
+    }
+
+    private Claims parseClaims(String accessToken) {
+        return Jwts.parserBuilder().setSigningKey(key).build().parseClaimsJws(accessToken).getBody();
     }
 }

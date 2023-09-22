@@ -7,6 +7,7 @@ import com.example.banking.dto.MemberLogin;
 import com.example.banking.entity.Member;
 import com.example.banking.repository.MemberRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
 import org.springframework.security.core.Authentication;
@@ -39,22 +40,27 @@ public class MemberService {
     }
 
     @Transactional
-    public TokenInfo login(MemberLogin memberLogin) {
+    public Object login(MemberLogin memberLogin) {
         String email = memberLogin.getEmail();
         String rawPassword = memberLogin.getPassword();
         Optional<Member> findMember = memberRepository.findByEmail(email);
 
         if (findMember.isEmpty()) {
-            return null;
+            return ResponseEntity.badRequest().body("계정이 존재하지 않습니다.");
         }
 
         if (!passwordEncoder.matches(rawPassword, findMember.get().getPassword())) {
-            return null;
+            return ResponseEntity.badRequest().body("비밀번호가 일치하지 않습니다.");
         }
 
         Authentication authenticationToken = new UsernamePasswordAuthenticationToken(email, rawPassword);
         Authentication authentication = authenticationManagerBuilder.getObject().authenticate(authenticationToken);
         return tokenProvider.generateToken(authentication);
+    }
+
+    @Transactional
+    public void delete(String email) {
+        memberRepository.deleteByEmail(email);
     }
 
     private boolean checkDuplicateEmail(MemberJoin memberJoin) {
