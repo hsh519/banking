@@ -1,17 +1,17 @@
 package com.example.banking.controller;
 
-import com.example.banking.dto.MemberDto;
-import com.example.banking.entity.Member;
+import com.example.banking.security.jwt.TokenInfo;
+import com.example.banking.dto.MemberJoin;
+import com.example.banking.dto.MemberLogin;
 import com.example.banking.service.MemberService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Controller;
-import org.springframework.ui.Model;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.validation.BindingResult;
 import org.springframework.validation.annotation.Validated;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.*;
 
-@Controller
+@RestController
 @RequiredArgsConstructor
 public class MemberController {
 
@@ -22,20 +22,26 @@ public class MemberController {
         return "index";
     }
 
-    @GetMapping("/user/join")
-    public String join(Model model) {
-        model.addAttribute("memberDto", new MemberDto());
-        return "joinForm";
-    }
-
+    @ResponseBody
     @PostMapping("/user/join")
-    public String join(@Validated MemberDto memberDto, BindingResult bindingResult, Model model) {
+    public ResponseEntity<String> join(@Validated @RequestBody MemberJoin memberJoin, BindingResult bindingResult) {
         if (bindingResult.hasErrors()) {
-            model.addAttribute("memberDto", memberDto);
-            return "joinForm";
+             return new ResponseEntity<>(bindingResult.getFieldError().getDefaultMessage(), HttpStatus.BAD_REQUEST);
+        }
+        if (memberService.join(memberJoin) == null) {
+            return new ResponseEntity<>("이미 가입된 이메일입니다.", HttpStatus.BAD_REQUEST);
         }
 
-        Member joinMember = memberService.join(memberDto);
-        return "redirect:/";
+        return new ResponseEntity<>("회원가입 성공", HttpStatus.CREATED);
+    }
+
+    @ResponseBody
+    @PostMapping(value = "/user/login")
+    public Object login(@Validated @RequestBody MemberLogin memberLogin, BindingResult bindingResult) {
+        if (bindingResult.hasErrors()) {
+            return ResponseEntity.badRequest().body(bindingResult.getFieldError().getDefaultMessage());
+        }
+        TokenInfo tokenInfo = memberService.login(memberLogin);
+        return tokenInfo;
     }
 }
